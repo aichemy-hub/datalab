@@ -263,6 +263,11 @@ its importance when deploying a datalab instance.""",
         description="The desired backup configuration.",
     )
 
+    INCLUDE_COLLECTIONS_VIEW: bool = Field(
+        True,
+        description="Whether to include samples in the same collection in graph view on sample pages. Set to False if you have large collections.",
+    )
+
     @root_validator
     def validate_cache_ages(cls, values):
         if values.get("REMOTE_CACHE_MIN_AGE") > values.get("REMOTE_CACHE_MAX_AGE"):
