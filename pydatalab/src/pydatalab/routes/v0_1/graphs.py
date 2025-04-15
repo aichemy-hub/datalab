@@ -4,6 +4,7 @@ from flask import Blueprint, jsonify, request
 
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import get_default_permissions
+from pydatalab.logger import LOGGER
 
 GRAPHS = Blueprint("graphs", __name__)
 
@@ -14,7 +15,9 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
     collection_id = request.args.get("collection_id", type=str)
 
     if item_id is None:
+        LOGGER.debug("No item_id provided, using collection_id")
         if collection_id is not None:
+            LOGGER.debug(f"Using collection_id={collection_id}")
             collection_immutable_id = flask_mongo.db.collections.find_one(
                 {"collection_id": collection_id}, projection={"_id": 1}
             )
@@ -37,6 +40,7 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
         all_documents.rewind()
 
     else:
+        LOGGER.debug(f"Using item_id={item_id}")
         all_documents = list(
             flask_mongo.db.items.find(
                 {
@@ -46,6 +50,8 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
                 projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
             )
         )
+        LOGGER.debug(f"Found {len(all_documents)} documents for item_id={item_id}")
+        LOGGER.debug(f"All documents: {all_documents}")
 
         node_ids = {document["item_id"] for document in all_documents} | {
             relationship.get("item_id")
@@ -86,7 +92,7 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
                 )
                 if collection_data:
                     if relationship["immutable_id"] not in node_collections:
-                        _id = f'Collection: {collection_data["collection_id"]}'
+                        _id = f"Collection: {collection_data['collection_id']}"
                         if _id not in drawn_elements:
                             nodes.append(
                                 {
@@ -101,7 +107,7 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
                             node_collections.add(relationship["immutable_id"])
                             drawn_elements.add(_id)
 
-                    source = f'Collection: {collection_data["collection_id"]}'
+                    source = f"Collection: {collection_data['collection_id']}"
                     target = document.get("item_id")
                     edges.append(
                         {
@@ -159,5 +165,9 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
         for node in nodes
         if node["data"]["type"] in ("samples", "cells") or node["data"]["id"] in whitelist
     ]
-
+    LOGGER.debug(
+        f"Graph with {len(nodes)} nodes and {len(edges)} edges for item_id={item_id} and collection_id={collection_id}"
+    )
+    LOGGER.debug(f"Graph nodes: {nodes}")
+    LOGGER.debug(f"Graph edges: {edges}")
     return (jsonify(status="success", nodes=nodes, edges=edges), 200)
