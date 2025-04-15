@@ -168,6 +168,18 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
     LOGGER.debug(
         f"Graph with {len(nodes)} nodes and {len(edges)} edges for item_id={item_id} and collection_id={collection_id}"
     )
+    # TODO fix this
+    # For now, we only return the node with the item_id if item_id is not None
+    # because the above doesn't work for some reason
+    if item_id is not None:
+        nodes = [
+            node
+            for node in nodes
+            if node["data"]["id"] == item_id
+        ]
+        # No edges
+        edges = [ ]
+
     LOGGER.debug(f"Graph nodes: {nodes}")
     LOGGER.debug(f"Graph edges: {edges}")
     return (jsonify(status="success", nodes=nodes, edges=edges), 200)
